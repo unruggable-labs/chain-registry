@@ -10,7 +10,7 @@ pragma solidity ^0.8.25;
 ///      - For data records with key "chain-name:<chainId_bytes>", returns the chain name from chainIDRegistry
 ///      - All other keys return empty values
 ///      - The chainIDRegistry provides the mapping from chain ID to chain name
-///      - Can be deployed on any subdomain (e.g., reverse.cid.eth) since labelhash is ignored
+///      - Can be deployed on any subdomain (e.g., reverse.name.cid.eth) since labelhash is ignored
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {HexUtils} from "@openzeppelin/contracts/utils/HexUtils.sol";
