@@ -13,22 +13,20 @@ pragma solidity ^0.8.25;
 ///      - Includes ownership and operator management for label hashes
 ///      - Uses AccessControl with ADMIN_ROLE for management functions
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {HexUtils} from "@openzeppelin/contracts/utils/HexUtils.sol";
+import {HexUtils} from "./utils/HexUtils.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IExtendedResolver} from "./interfaces/IExtendedResolver.sol";
 import {NameCoder} from "./utils/NameCoder.sol";
 
 interface IChainIDRegistry {
     function chainName(bytes calldata _chainIdBytes) external view returns (string memory _chainName);
+
     function chainId(bytes32 labelhash) external view returns (bytes memory _chainId);
 }
 
-contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
-
-    // Role constants
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
+contract ChainResolver is Ownable, IERC165, IExtendedResolver {
     // ENS method selectors
     bytes4 public constant ADDR_SELECTOR = bytes4(keccak256("addr(bytes32)"));
     bytes4 public constant ADDR_COINTYPE_SELECTOR = bytes4(keccak256("addr(bytes32,uint256)"));
@@ -41,13 +39,12 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
 
     // Text record key constants
     string public constant CHAIN_ID_TEXT_KEY = "chain-id";
-    
+
     // Data record key constants
     bytes public constant CHAIN_ID_DATA_KEY = "chain-id";
 
     // Base node for cid.eth
     bytes32 public constant BASE_NODE = keccak256(abi.encodePacked(bytes32(0), keccak256("cid")));
-
 
     // ChainID Registry contract address
     IChainIDRegistry public chainIDRegistry;
@@ -57,17 +54,13 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     mapping(bytes32 labelHash => bytes contentHash) private contenthashRecords;
     mapping(bytes32 labelHash => mapping(string key => string value)) private textRecords;
     mapping(bytes32 labelHash => mapping(bytes key => bytes data)) private dataRecords;
-    
+
     // Owner and operator mappings
     mapping(bytes32 labelHash => address owner) private labelOwners;
     mapping(address owner => mapping(address operator => bool authorized)) private operators;
 
-    constructor(address _chainIDRegistry) {
+    constructor(address _chainIDRegistry) Ownable(msg.sender) {
         chainIDRegistry = IChainIDRegistry(_chainIDRegistry);
-        
-        // Set up roles
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
     /// @notice Resolve data for a DNS-encoded name using ENSIP-10 interface.
@@ -76,11 +69,11 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     /// @return The resolved data based on the method selector.
     function resolve(bytes calldata name, bytes calldata data) external view override returns (bytes memory) {
         // Extract the first label from the DNS-encoded name
-        (bytes32 labelHash, , , ) = NameCoder.readLabel(name, 0, true);
-        
+        (bytes32 labelHash,,,) = NameCoder.readLabel(name, 0, true);
+
         // Get the method selector (first 4 bytes)
         bytes4 selector = bytes4(data);
-        
+
         if (selector == ADDR_SELECTOR) {
             // addr(bytes32) - return address for Ethereum (coinType 60)
             address addr = addressRecords[labelHash][ETHEREUM_COIN_TYPE];
@@ -97,53 +90,50 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
         } else if (selector == TEXT_SELECTOR) {
             // text(bytes32,string) - decode key and return text value
             (, string memory key) = abi.decode(data[4:], (bytes32, string));
-            
+
             // Special case for "chain-id" text record
             if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked(CHAIN_ID_TEXT_KEY))) {
                 // Get chain ID bytes from registry and encode as hex string
                 bytes memory chainIdBytes = chainIDRegistry.chainId(labelHash);
-                string memory hexString = HexUtils.toHexString(chainIdBytes);
+                string memory hexString =   HexUtils.bytesToHex(chainIdBytes);
                 return abi.encode(hexString);
             }
-            
+
             // Default: return text value from mapping
             string memory value = textRecords[labelHash][key];
             return abi.encode(value);
         } else if (selector == DATA_SELECTOR) {
             // data(bytes32,bytes) - decode key and return data value
             (, bytes memory key) = abi.decode(data[4:], (bytes32, bytes));
-            
+
             // Special case for "chain-id" data record
             if (keccak256(key) == keccak256(CHAIN_ID_DATA_KEY)) {
                 // Return chain ID bytes directly from registry
                 return chainIDRegistry.chainId(labelHash);
             }
-            
+
             // Default: return data value from mapping
             bytes memory dataValue = dataRecords[labelHash][key];
             return abi.encode(dataValue);
         }
     }
 
-
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
         return interfaceId == type(IERC165).interfaceId || interfaceId == type(IExtendedResolver).interfaceId;
     }
-
 
     /// @notice Set the address for a label hash with a specific coin type.
     /// @param _labelHash The label hash to update.
     /// @param _coinType The coin type (default: 60 for Ethereum).
     /// @param _addr The address to set.
-    function setAddr(bytes32 _labelHash, uint256 _coinType, address _addr) external onlyRole(ADMIN_ROLE) {
+    function setAddr(bytes32 _labelHash, uint256 _coinType, address _addr) external onlyOwner {
         addressRecords[_labelHash][_coinType] = _addr;
     }
-
 
     /// @notice Set the content hash for a label hash.
     /// @param _labelHash The label hash to update.
     /// @param _hash The content hash to set.
-    function setContenthash(bytes32 _labelHash, bytes calldata _hash) external onlyRole(ADMIN_ROLE) {
+    function setContenthash(bytes32 _labelHash, bytes calldata _hash) external onlyOwner {
         contenthashRecords[_labelHash] = _hash;
     }
 
@@ -152,7 +142,7 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     /// @param _key The text record key.
     /// @param _value The text record value.
     /// @dev Note: "chain-id" text record will be stored but not used - resolve() overrides it with chainIDRegistry value.
-    function setText(bytes32 _labelHash, string calldata _key, string calldata _value) external onlyRole(ADMIN_ROLE) {
+    function setText(bytes32 _labelHash, string calldata _key, string calldata _value) external onlyOwner {
         textRecords[_labelHash][_key] = _value;
     }
 
@@ -161,7 +151,7 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     /// @param _key The data record key.
     /// @param _data The data record value.
     /// @dev Note: "chain-id" data record will be stored but not used - resolve() overrides it with chainIDRegistry value.
-    function setData(bytes32 _labelHash, bytes calldata _key, bytes calldata _data) external onlyRole(ADMIN_ROLE) {
+    function setData(bytes32 _labelHash, bytes calldata _key, bytes calldata _data) external onlyOwner {
         dataRecords[_labelHash][_key] = _data;
     }
 
@@ -172,7 +162,6 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     function getAddr(bytes32 _labelHash, uint256 _coinType) external view returns (address) {
         return addressRecords[_labelHash][_coinType];
     }
-
 
     /// @notice Get the content hash for a label hash.
     /// @param _labelHash The label hash to query.
@@ -201,7 +190,7 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
     /// @notice Register a label hash with an owner.
     /// @param _labelHash The label hash to register.
     /// @param _owner The owner address for this label hash.
-    function register(bytes32 _labelHash, address _owner) external onlyRole(ADMIN_ROLE) {
+    function register(bytes32 _labelHash, address _owner) external onlyOwner {
         labelOwners[_labelHash] = _owner;
     }
 
@@ -229,7 +218,7 @@ contract ChainResolver is AccessControl, IERC165, IExtendedResolver {
 
     /// @notice Update the chainID registry address.
     /// @param _chainIDRegistry The new chainID registry contract address.
-    function updateChainIDRegistry(address _chainIDRegistry) external onlyRole(ADMIN_ROLE) {
+    function updateChainIDRegistry(address _chainIDRegistry) external onlyOwner {
         chainIDRegistry = IChainIDRegistry(_chainIDRegistry);
     }
 }

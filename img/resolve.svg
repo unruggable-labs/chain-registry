@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="181pt" height="521pt" viewBox="0.00 0.00 181.00 521.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 516.8)">
+<title>G</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-516.8 177.06,-516.8 177.06,4 -4,4"/>
+<!-- Query -->
+<g id="node1" class="node">
+<title>Query</title>
+<polygon fill="#1d3557" stroke="black" points="147.01,-512.8 26.04,-512.8 26.04,-454.4 147.01,-454.4 147.01,-512.8"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-496.2" font-family="Times,serif" font-size="14.00" fill="white">Client query</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-479.4" font-family="Times,serif" font-size="14.00" fill="white">op-mainnet.cid.eth</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-462.6" font-family="Times,serif" font-size="14.00" fill="white">text('chain-id')</text>
+</g>
+<!-- ENSRegistry -->
+<g id="node2" class="node">
+<title>ENSRegistry</title>
+<polygon fill="#5a189a" stroke="black" points="133.22,-418.4 39.83,-418.4 39.83,-382.4 133.22,-382.4 133.22,-418.4"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-396.2" font-family="Times,serif" font-size="14.00" fill="white">ENS Registry</text>
+</g>
+<!-- Query&#45;&gt;ENSRegistry -->
+<g id="edge1" class="edge">
+<title>Query-&gt;ENSRegistry</title>
+<path fill="none" stroke="black" d="M86.53,-454.2C86.53,-446.3 86.53,-437.73 86.53,-429.83"/>
+<polygon fill="black" stroke="black" points="90.03,-430.05 86.53,-420.05 83.03,-430.05 90.03,-430.05"/>
+</g>
+<!-- ENSIP10 -->
+<g id="node3" class="node">
+<title>ENSIP10</title>
+<polygon fill="#9d4edd" stroke="black" points="173.06,-346.4 0,-346.4 0,-304.8 173.06,-304.8 173.06,-346.4"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-329.8" font-family="Times,serif" font-size="14.00" fill="white">ENSIP-10</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-313" font-family="Times,serif" font-size="14.00" fill="white">inherit resolver from cid.eth</text>
+</g>
+<!-- ENSRegistry&#45;&gt;ENSIP10 -->
+<g id="edge2" class="edge">
+<title>ENSRegistry-&gt;ENSIP10</title>
+<path fill="none" stroke="black" d="M86.53,-382.15C86.53,-374.95 86.53,-366.35 86.53,-358.09"/>
+<polygon fill="black" stroke="black" points="90.03,-358.34 86.53,-348.34 83.03,-358.34 90.03,-358.34"/>
+</g>
+<!-- Resolver -->
+<g id="node4" class="node">
+<title>Resolver</title>
+<polygon fill="#2d6a4f" stroke="black" points="146.05,-268.8 27.01,-268.8 27.01,-232.8 146.05,-232.8 146.05,-268.8"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-246.6" font-family="Times,serif" font-size="14.00" fill="white">ChainResolver.sol</text>
+</g>
+<!-- ENSIP10&#45;&gt;Resolver -->
+<g id="edge3" class="edge">
+<title>ENSIP10-&gt;Resolver</title>
+<path fill="none" stroke="black" d="M86.53,-304.32C86.53,-296.95 86.53,-288.46 86.53,-280.5"/>
+<polygon fill="black" stroke="black" points="90.03,-280.53 86.53,-270.53 83.03,-280.53 90.03,-280.53"/>
+</g>
+<!-- LabelHash -->
+<g id="node5" class="node">
+<title>LabelHash</title>
+<polygon fill="#2d6a4f" stroke="black" points="144.67,-196.8 28.38,-196.8 28.38,-155.2 144.67,-155.2 144.67,-196.8"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-180.2" font-family="Times,serif" font-size="14.00" fill="white">Extract label hash</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-163.4" font-family="Times,serif" font-size="14.00" fill="white">'op-mainnet'</text>
+</g>
+<!-- Resolver&#45;&gt;LabelHash -->
+<g id="edge4" class="edge">
+<title>Resolver-&gt;LabelHash</title>
+<path fill="none" stroke="black" d="M86.53,-232.55C86.53,-225.35 86.53,-216.75 86.53,-208.49"/>
+<polygon fill="black" stroke="black" points="90.03,-208.74 86.53,-198.74 83.03,-208.74 90.03,-208.74"/>
+</g>
+<!-- Registry -->
+<g id="node6" class="node">
+<title>Registry</title>
+<polygon fill="#f3722c" stroke="black" points="148.17,-119.2 24.89,-119.2 24.89,-77.6 148.17,-77.6 148.17,-119.2"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-102.6" font-family="Times,serif" font-size="14.00" fill="white">chainIDRegistry</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-85.8" font-family="Times,serif" font-size="14.00" fill="white">chainId(labelHash)</text>
+</g>
+<!-- LabelHash&#45;&gt;Registry -->
+<g id="edge5" class="edge">
+<title>LabelHash-&gt;Registry</title>
+<path fill="none" stroke="black" d="M86.53,-154.74C86.53,-147.39 86.53,-138.91 86.53,-130.83"/>
+<polygon fill="black" stroke="black" points="90.03,-130.97 86.53,-120.97 83.03,-130.97 90.03,-130.97"/>
+</g>
+<!-- Response -->
+<g id="node7" class="node">
+<title>Response</title>
+<polygon fill="#2d6a4f" stroke="black" points="139.62,-41.6 33.43,-41.6 33.43,0 139.62,0 139.62,-41.6"/>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-25" font-family="Times,serif" font-size="14.00" fill="white">Return chain ID</text>
+<text xml:space="preserve" text-anchor="middle" x="86.53" y="-8.2" font-family="Times,serif" font-size="14.00" fill="white">'0xa'</text>
+</g>
+<!-- Registry&#45;&gt;Response -->
+<g id="edge6" class="edge">
+<title>Registry-&gt;Response</title>
+<path fill="none" stroke="black" d="M86.53,-77.14C86.53,-69.79 86.53,-61.31 86.53,-53.23"/>
+<polygon fill="black" stroke="black" points="90.03,-53.37 86.53,-43.37 83.03,-53.37 90.03,-53.37"/>
+</g>
+</g>
+</svg>
