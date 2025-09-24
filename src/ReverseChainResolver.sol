@@ -13,9 +13,10 @@ pragma solidity ^0.8.25;
 ///      - Can be deployed on any subdomain (e.g., reverse.name.cid.eth) since labelhash is ignored
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {HexUtils} from "@openzeppelin/contracts/utils/HexUtils.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IExtendedResolver} from "./interfaces/IExtendedResolver.sol";
 import {NameCoder} from "./utils/NameCoder.sol";
+import {HexUtils} from "./utils/HexUtils.sol";
 
 interface IChainIDRegistry {
     function chainName(bytes calldata _chainIdBytes) external view returns (string memory _chainName);
@@ -23,24 +24,21 @@ interface IChainIDRegistry {
 }
 
 contract ReverseChainResolver is IERC165, IExtendedResolver {
-
     // ENS method selectors
     bytes4 public constant TEXT_SELECTOR = bytes4(keccak256("text(bytes32,string)"));
     bytes4 public constant DATA_SELECTOR = bytes4(keccak256("data(bytes32,bytes)"));
 
     // Text record key prefix
     string public constant CHAIN_NAME_TEXT_PREFIX = "chain-name:";
-    
+
     // Data record key prefix
     string public constant CHAIN_NAME_DATA_PREFIX = "chain-name:";
 
     // Base node for cid.eth
     bytes32 public constant BASE_NODE = keccak256(abi.encodePacked(bytes32(0), keccak256("cid")));
 
-
     // ChainID Registry contract address
     IChainIDRegistry public chainIDRegistry;
-
 
     constructor(address _chainIDRegistry) {
         chainIDRegistry = IChainIDRegistry(_chainIDRegistry);
@@ -52,32 +50,32 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
     /// @return The resolved data based on the method selector.
     function resolve(bytes calldata name, bytes calldata data) external view override returns (bytes memory) {
         // Extract the first label from the DNS-encoded name
-        (bytes32 labelHash, , , ) = NameCoder.readLabel(name, 0, true);
-        
+        (bytes32 labelHash,,,) = NameCoder.readLabel(name, 0, true);
+
         // Get the method selector (first 4 bytes)
         bytes4 selector = bytes4(data);
-        
+
         if (selector == TEXT_SELECTOR) {
             // text(bytes32,string) - decode key and return text value
             (, string memory key) = abi.decode(data[4:], (bytes32, string));
-            
+
             // Check if key starts with "chain-name:" prefix
             bytes memory keyBytes = bytes(key);
             bytes memory prefixBytes = bytes(CHAIN_NAME_TEXT_PREFIX);
             if (_startsWith(keyBytes, prefixBytes)) {
                 // Extract chainId from key (remove "chain-name:" prefix)
                 string memory chainIdHex = _substring(key, prefixBytes.length, keyBytes.length);
-                bytes memory chainIdBytes = HexUtils.hexStringToBytes(chainIdHex);
+                bytes memory chainIdBytes = bytes(chainIdHex);
                 string memory chainName = chainIDRegistry.chainName(chainIdBytes);
                 return abi.encode(chainName);
             }
-            
+
             // Return empty bytes for non-chain-name keys
             return abi.encode("");
         } else if (selector == DATA_SELECTOR) {
             // data(bytes32,bytes) - decode key and return data value
             (, bytes memory key) = abi.decode(data[4:], (bytes32, bytes));
-            
+
             // Check if key starts with "chain-name:" prefix
             bytes memory prefixBytes = abi.encode(CHAIN_NAME_DATA_PREFIX);
             if (_startsWith(key, prefixBytes)) {
@@ -89,7 +87,7 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
                 string memory chainName = chainIDRegistry.chainName(chainIdBytes);
                 return abi.encode(chainName);
             }
-            
+
             // Return empty bytes for non-chain-name keys
             return abi.encode(bytes(""));
         }
@@ -124,6 +122,4 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
         }
         return string(result);
     }
-
-
 }

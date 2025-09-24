@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {HexUtils} from "../utils/HexUtils.sol";
-
 /// @dev Library for encoding/decoding names.
 ///
 /// An ENS name is stop-separated labels, eg. "aaa.bb.c".
@@ -23,6 +22,7 @@ import {HexUtils} from "../utils/HexUtils.sol";
 /// w/o hashed labels: `dns.length == 2 + ens.length` and the mapping is injective.
 ///  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
 ///
+
 library NameCoder {
     /// @dev The DNS-encoded name is malformed.
     ///      Error selector: `0xba4adc23`
@@ -39,10 +39,7 @@ library NameCoder {
     /// @param offset The offset into `name` to start reading.
     /// @return size The size of the label in bytes.
     /// @return nextOffset The offset into `name` of the next label.
-    function nextLabel(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (uint8 size, uint256 nextOffset) {
+    function nextLabel(bytes memory name, uint256 offset) internal pure returns (uint8 size, uint256 nextOffset) {
         assembly {
             size := byte(0, mload(add(add(name, 32), offset))) // uint8(name[offset])
             nextOffset := add(offset, add(1, size)) // offset + 1 + size
@@ -61,10 +58,7 @@ library NameCoder {
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading backwards.
     /// @return prevOffset The offset into `name` of the previous label.
-    function prevLabel(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (uint256 prevOffset) {
+    function prevLabel(bytes memory name, uint256 offset) internal pure returns (uint256 prevOffset) {
         while (true) {
             (, uint256 nextOffset) = nextLabel(name, prevOffset);
             if (nextOffset == offset) break;
@@ -85,32 +79,14 @@ library NameCoder {
     /// @return nextOffset The offset into `name` of the next label.
     /// @return size The size of the label in bytes.
     /// @return wasHashed If true, the label was interpreted as a hashed label.
-    function readLabel(
-        bytes memory name,
-        uint256 offset,
-        bool parseHashed
-    )
+    function readLabel(bytes memory name, uint256 offset, bool parseHashed)
         internal
         pure
-        returns (
-            bytes32 labelHash,
-            uint256 nextOffset,
-            uint8 size,
-            bool wasHashed
-        )
+        returns (bytes32 labelHash, uint256 nextOffset, uint8 size, bool wasHashed)
     {
         (size, nextOffset) = nextLabel(name, offset);
-        if (
-            parseHashed &&
-            size == 66 &&
-            name[offset + 1] == "[" &&
-            name[nextOffset - 1] == "]"
-        ) {
-            (labelHash, wasHashed) = HexUtils.hexStringToBytes32(
-                name,
-                offset + 2,
-                nextOffset - 1
-            ); // will not revert
+        if (parseHashed && size == 66 && name[offset + 1] == "[" && name[nextOffset - 1] == "]") {
+            (labelHash, wasHashed) = HexUtils.hexStringToBytes32(name, offset + 2, nextOffset - 1); // will not revert
             if (!wasHashed || labelHash == bytes32(0)) {
                 revert DNSDecodingFailed(name); // "readLabel: malformed" or null literal
             }
@@ -122,11 +98,12 @@ library NameCoder {
     }
 
     /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
-    function readLabel(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
-        (labelHash, nextOffset, , ) = readLabel(name, offset, true);
+    function readLabel(bytes memory name, uint256 offset)
+        internal
+        pure
+        returns (bytes32 labelHash, uint256 nextOffset)
+    {
+        (labelHash, nextOffset,,) = readLabel(name, offset, true);
     }
 
     /// @dev Compute the ENS namehash of `name[:offset]`.
@@ -135,10 +112,7 @@ library NameCoder {
     /// @param name The DNS-encoded name.
     /// @param offset The offset into name start hashing.
     /// @return hash The namehash of `name[:offset]`.
-    function namehash(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 hash) {
+    function namehash(bytes memory name, uint256 offset) internal pure returns (bytes32 hash) {
         (hash, offset) = readLabel(name, offset);
         if (hash != bytes32(0)) {
             hash = namehash(namehash(name, offset), hash);
@@ -149,10 +123,7 @@ library NameCoder {
     /// @param parentNode The namehash of the parent.
     /// @param labelHash The labelhash of the child.
     /// @return node The namehash of the child.
-    function namehash(
-        bytes32 parentNode,
-        bytes32 labelHash
-    ) internal pure returns (bytes32 node) {
+    function namehash(bytes32 parentNode, bytes32 labelHash) internal pure returns (bytes32 node) {
         // ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
         assembly {
             mstore(0, parentNode)
@@ -165,9 +136,7 @@ library NameCoder {
     ///      Reverts `DNSDecodingFailed`.
     /// @param dns The DNS-encoded name to convert, eg. `\x03aaa\x02bb\x01c\x00`.
     /// @return ens The equivalent ENS name, eg. `aaa.bb.c`.
-    function decode(
-        bytes memory dns
-    ) internal pure returns (string memory ens) {
+    function decode(bytes memory dns) internal pure returns (string memory ens) {
         unchecked {
             uint256 n = dns.length;
             if (n == 1 && dns[0] == 0) return ""; // only valid answer is root
@@ -197,9 +166,7 @@ library NameCoder {
     ///      Reverts `DNSEncodingFailed`.
     /// @param ens The ENS name to convert, eg. `aaa.bb.c`.
     /// @return dns The corresponding DNS-encoded name, eg. `\x03aaa\x02bb\x01c\x00`.
-    function encode(
-        string memory ens
-    ) internal pure returns (bytes memory dns) {
+    function encode(string memory ens) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
             if (n == 0) return hex"00"; // root
@@ -237,10 +204,7 @@ library NameCoder {
     /// @param end The memory offset at the end of the label.
     /// @return next The memory offset for the next label.
     ///              Returns 0 if label is empty (handled by caller).
-    function _createHashedLabel(
-        uint256 start,
-        uint256 end
-    ) internal pure returns (uint256 next) {
+    function _createHashedLabel(uint256 start, uint256 end) internal pure returns (uint256 next) {
         uint256 size = end - start; // length of label
         if (size > 255) {
             assembly {
@@ -268,27 +232,14 @@ library NameCoder {
     /// @return node The namehash of `name[offset:]`.
     /// @return prevOffset The offset into `name` of the label before the suffix, or `matchOffset` if no match or prior label.
     /// @return matchOffset The offset into `name` that namehashes to the `nodeSuffix`, or 0 if no match.
-    function matchSuffix(
-        bytes memory name,
-        uint256 offset,
-        bytes32 nodeSuffix
-    )
+    function matchSuffix(bytes memory name, uint256 offset, bytes32 nodeSuffix)
         internal
         pure
-        returns (
-            bool matched,
-            bytes32 node,
-            uint256 prevOffset,
-            uint256 matchOffset
-        )
+        returns (bool matched, bytes32 node, uint256 prevOffset, uint256 matchOffset)
     {
         (bytes32 labelHash, uint256 next) = readLabel(name, offset);
         if (labelHash != bytes32(0)) {
-            (matched, node, prevOffset, matchOffset) = matchSuffix(
-                name,
-                next,
-                nodeSuffix
-            );
+            (matched, node, prevOffset, matchOffset) = matchSuffix(name, next, nodeSuffix);
             if (node == nodeSuffix) {
                 matched = true;
                 prevOffset = offset;
