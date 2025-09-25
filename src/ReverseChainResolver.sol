@@ -4,24 +4,13 @@ pragma solidity ^0.8.25;
 /// @title ReverseChainResolver
 /// @author @unruggable-labs
 /// @notice Extended resolver that resolves chain names from chain IDs using ENSIP-10 interface.
-/// @dev This resolver works by:
-///      - Taking DNS-encoded names and extracting the first label hash (but ignoring it)
-///      - For text records with key "chain-name:<chainId_hex>", returns the chain name from chainIDRegistry
-///      - For data records with key "chain-name:<chainId_bytes>", returns the chain name from chainIDRegistry
-///      - All other keys return empty values
-///      - The chainIDRegistry provides the mapping from chain ID to chain name
-///      - Can be deployed on any subdomain (e.g., reverse.name.cid.eth) since labelhash is ignored
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IExtendedResolver} from "./interfaces/IExtendedResolver.sol";
 import {NameCoder} from "./utils/NameCoder.sol";
 import {HexUtils} from "./utils/HexUtils.sol";
-
-interface IChainIDRegistry {
-    function chainName(bytes calldata _chainIdBytes) external view returns (string memory _chainName);
-    function chainId(bytes32 labelhash) external view returns (bytes memory _chainId);
-}
+import {IChainRegistry} from "./interfaces/IChainRegistry.sol";
 
 contract ReverseChainResolver is IERC165, IExtendedResolver {
     // ENS method selectors
@@ -38,10 +27,10 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
     bytes32 public constant BASE_NODE = keccak256(abi.encodePacked(bytes32(0), keccak256("cid")));
 
     // ChainID Registry contract address
-    IChainIDRegistry public chainIDRegistry;
+    IChainRegistry public chainRegistry;
 
-    constructor(address _chainIDRegistry) {
-        chainIDRegistry = IChainIDRegistry(_chainIDRegistry);
+    constructor(address _chainRegistry) {
+        chainRegistry = IChainRegistry(_chainRegistry);
     }
 
     /// @notice Resolve data for a DNS-encoded name using ENSIP-10 interface.
@@ -66,7 +55,7 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
                 // Extract chainId from key (remove "chain-name:" prefix)
                 string memory chainIdHex = _substring(key, prefixBytes.length, keyBytes.length);
                 bytes memory chainIdBytes = bytes(chainIdHex);
-                string memory chainName = chainIDRegistry.chainName(chainIdBytes);
+                string memory chainName = chainRegistry.chainName(chainIdBytes);
                 return abi.encode(chainName);
             }
 
@@ -84,7 +73,7 @@ contract ReverseChainResolver is IERC165, IExtendedResolver {
                 for (uint256 i = 0; i < chainIdBytes.length; i++) {
                     chainIdBytes[i] = key[prefixBytes.length + i];
                 }
-                string memory chainName = chainIDRegistry.chainName(chainIdBytes);
+                string memory chainName = chainRegistry.chainName(chainIdBytes);
                 return abi.encode(chainName);
             }
 
