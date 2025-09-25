@@ -22,12 +22,16 @@ const { deployerWallet, smith, rl } = await initSmith(
   privateKey
 );
 
+// Track addresses across all branches so we can always summarize
+let registryAddress: string | undefined;
+let resolverAddress: string | undefined;
+let reverseAddress: string | undefined;
+
 const shouldBegin = await promptContinueOrExit(rl, "Start deployment? (y/n)");
 
 if (shouldBegin) {
   // 1) ChainRegistry
   const registryName = "ChainRegistry";
-  let registryAddress: string | undefined;
   try {
     const existing = await loadDeployment(chainId, registryName);
     const found = existing.target as string;
@@ -91,7 +95,6 @@ if (shouldBegin) {
   } else {
     // 2) ChainResolver
     const resolverName = "ChainResolver";
-    let resolverAddress: string | undefined;
     try {
       const existingResolver = await loadDeployment(chainId, resolverName);
       const found = existingResolver.target as string;
@@ -132,6 +135,8 @@ if (shouldBegin) {
           "[Resolver]"
         );
         if (already) constructorCheck(contract.constructorArgs, args);
+        // capture deployed address
+        resolverAddress = contract.target as string;
 
         const shouldVerifyRes = await promptContinueOrExit(
           rl,
@@ -152,7 +157,6 @@ if (shouldBegin) {
 
     // 3) ReverseChainResolver
     const reverseName = "ReverseChainResolver";
-    let reverseAddress: string | undefined;
     try {
       const existingReverse = await loadDeployment(chainId, reverseName);
       const found = existingReverse.target as string;
@@ -193,6 +197,8 @@ if (shouldBegin) {
           "[Reverse]"
         );
         if (already) constructorCheck(contract.constructorArgs, args);
+        // capture deployed address
+        reverseAddress = contract.target as string;
 
         const shouldVerifyRev = await promptContinueOrExit(
           rl,
@@ -212,6 +218,12 @@ if (shouldBegin) {
     }
   }
 }
+
+// Always print a summary, even if user declined to start
+console.log("\n=== Deployment Summary ===");
+console.log(`Registry:        ${registryAddress ?? "(none)"}`);
+console.log(`Resolver:        ${resolverAddress ?? "(none)"}`);
+console.log(`ReverseResolver: ${reverseAddress ?? "(none)"}`);
 
 //Shutdown
 await shutdownSmith(rl, smith);

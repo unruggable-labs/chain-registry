@@ -3,15 +3,16 @@ pragma solidity ^0.8.25;
 
 /// @title ChainResolver
 /// @author @unruggable-labs
-/// @notice Extended resolver that stores chain-id records per label using ENSIP-10 interface.
+/// @notice Extended resolver that stores chain records per label using ENSIP-10 interface.
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {HexUtils} from "./utils/HexUtils.sol";
+import {HexUtils} from "@ensdomains/ens-contracts/contracts/utils/HexUtils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IExtendedResolver} from "./interfaces/IExtendedResolver.sol";
-import {NameCoder} from "./utils/NameCoder.sol";
+import {IExtendedResolver} from "@ensdomains/ens-contracts/contracts/resolvers/profiles/IExtendedResolver.sol";
+import {NameCoder} from "@ensdomains/ens-contracts/contracts/utils/NameCoder.sol";
 /// @notice Minimal read-only surface expected from a ChainID registry.
+
 interface IChainRegistry {
     function chainName(bytes calldata _chainIdBytes) external view returns (string memory _chainName);
 
@@ -87,7 +88,7 @@ contract ChainResolver is Ownable, IERC165, IExtendedResolver {
             if (keccak256(abi.encodePacked(key)) == keccak256(abi.encodePacked(CHAIN_ID_TEXT_KEY))) {
                 // Get chain ID bytes from registry and encode as hex string
                 bytes memory chainIdBytes = chainIDRegistry.chainId(labelHash);
-                string memory hexString =   HexUtils.bytesToHex(chainIdBytes);
+                string memory hexString = HexUtils.bytesToHex(chainIdBytes);
                 return abi.encode(hexString);
             }
 

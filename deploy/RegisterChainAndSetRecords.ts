@@ -1,4 +1,5 @@
 // Register a chain in ChainRegistry and optionally set ChainResolver records
+import 'dotenv/config'
 
 import { init } from "./libs/init.ts";
 import {
@@ -30,15 +31,32 @@ const { deployerWallet, smith, rl } = await initSmith(
 );
 
 try {
-  // Resolve contract addresses (prefer deployments, validate code)
+  // Resolve contract addresses (env > deployments > prompt)
   let registryAddress: string | undefined;
   let resolverAddress: string | undefined;
+
+  // 0) Prefer explicit env var for ChainRegistry
+  try {
+    const envReg = (process.env.CHAIN_REGISTRY_ADDRESS || "").trim();
+    if (envReg) {
+      const code = await deployerWallet.provider.getCode(envReg);
+      if (code && code !== "0x") registryAddress = envReg;
+    }
+  } catch {}
 
   try {
     const reg = await loadDeployment(chainId, "ChainRegistry");
     const found = reg.target as string;
     const code = await deployerWallet.provider.getCode(found);
     if (code && code !== "0x") registryAddress = found;
+  } catch {}
+  // 0b) Prefer explicit env var for ChainResolver
+  try {
+    const envRes = (process.env.CHAIN_RESOLVER_ADDRESS || "").trim();
+    if (envRes) {
+      const code = await deployerWallet.provider.getCode(envRes);
+      if (code && code !== "0x") resolverAddress = envRes;
+    }
   } catch {}
   try {
     const res = await loadDeployment(chainId, "ChainResolver");
@@ -109,6 +127,8 @@ try {
   } catch {}
 
   // Optional records
+  console.log("\nOptional records: The following prompts are optional.");
+  console.log("You can answer 'n' to skip any of them.\n");
   if (await promptContinueOrExit(rl, "Set addr(60)? (y/n): ")) {
     const a60 = (await askQuestion(rl, "ETH address: ")).trim();
     const tx = await resolver.setAddr(labelHash, 60, a60);
@@ -161,4 +181,3 @@ try {
 } finally {
   await shutdownSmith(rl, smith);
 }
-

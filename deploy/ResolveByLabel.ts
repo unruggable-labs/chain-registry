@@ -19,7 +19,7 @@ const { deployerWallet, smith, rl } = await initSmith(
 );
 
 try {
-  // Use deployed ChainResolver only (no registry prompts)
+  // Use deployed ChainResolver only
   let resolverAddress: string | undefined;
   try {
     const res = await loadDeployment(chainId, "ChainResolver");

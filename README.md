@@ -1,6 +1,6 @@
-# Chain Resolver Overview
+# On-chain Registry Overview
 
-This repo packages an ENS resolver that maps between chain labels and chain IDs. This resolver implements the wildcard resolution defined by [ENSIP-10](https://docs.ens.domains/ensip/10/) .The forward resolver ([`ChainResolver.sol`](src/ChainResolver.sol)) responds to ENS record queries for any labelhash, while the reverse resolver ([`ReverseChainResolver.sol`](src/ReverseChainResolver.sol)) turns raw chain IDs back into readable labels.
+This repo packages an ENS registry - [ChainRegistry](src/ChainRegistry.sol), and resolvers that resolve chain labels to chain IDs and vice versa. The resolvers implement the wildcard resolution defined by [ENSIP-10](https://docs.ens.domains/ensip/10/). The forward resolver ([`ChainResolver.sol`](src/ChainResolver.sol)) responds to ENS record queries for any labelhash, while the reverse resolver ([`ReverseChainResolver.sol`](src/ReverseChainResolver.sol)) turns raw chain IDs back into readable labels.
 
 ### Why this structure works
 - Everything is keyed by the labelhash. That keeps us agnostic about whether the namespace lives at `cid.eth`, `on.eth`, `l2.eth`, or anything else. We can pick the final hierarchy later without migrating records.
@@ -72,7 +72,10 @@ function resolve(bytes calldata name, bytes calldata data) external view overrid
 
 ### Chain Resolution Flow
 
-![Chain Resolving](img/resolve.png)
+<p align="center">
+  <img src="img/resolve.png" alt="Chain Resolving" width="40%" />
+  
+</p>
 
 ## ReverseChainResolver
 
@@ -81,7 +84,10 @@ function resolve(bytes calldata name, bytes calldata data) external view overrid
 
 ### Reverse Resolution Flow
 
-![Reverse Resolving](img/reverseresolve.png)
+<p align="center">
+  <img src="img/reverseresolve.png" alt="Reverse Resolving" width="40%" />
+  
+</p>
 
 
 ## Development
@@ -117,14 +123,17 @@ bun run deploy/DeployENSChainRegistry.ts --chain=sepolia
 2) Capture deployed addresses and put them in your `.env`:
 
 ```
-# Forward resolver
+# ChainResolver (forward resolver) deployed address
+# Read by: deploy/ResolveByLabel.ts
 CHAIN_RESOLVER_ADDRESS=0x...
 
-# Reverse resolver
-REVERSE_RESOLVER_ADDRESS=0x...
+# ChainRegistry deployed address
+# Read by: deploy/RegisterChainAndSetRecords.ts
+CHAIN_REGISTRY_ADDRESS=0x...
 
-# RPC (used by tests and scripts)
-SEPOLIA_RPC_URL=...
+# ReverseChainResolver deployed address
+# Read by: deploy/ReverseResolveByChainId.ts
+REVERSE_RESOLVER_ADDRESS=0x...
 ```
 
 3) Register a chain and set records

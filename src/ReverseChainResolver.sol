@@ -7,9 +7,9 @@ pragma solidity ^0.8.25;
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IExtendedResolver} from "./interfaces/IExtendedResolver.sol";
-import {NameCoder} from "./utils/NameCoder.sol";
-import {HexUtils} from "./utils/HexUtils.sol";
+import {IExtendedResolver} from "@ensdomains/ens-contracts/contracts/resolvers/profiles/IExtendedResolver.sol";
+import {NameCoder} from "@ensdomains/ens-contracts/contracts/utils/NameCoder.sol";
+import {HexUtils} from "@ensdomains/ens-contracts/contracts/utils/HexUtils.sol";
 import {IChainRegistry} from "./interfaces/IChainRegistry.sol";
 
 contract ReverseChainResolver is IERC165, IExtendedResolver {
