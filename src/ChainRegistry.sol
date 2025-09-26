@@ -15,7 +15,11 @@ import {IChainRegistry} from "src/interfaces/IChainRegistry.sol";
  * Source: https://github.com/nxt3d/Wonderland_L2Resolver/blob/dev/src/contracts/L2Resolver.sol
  */
 contract ChainRegistry is IChainRegistry, IERC165, Ownable {
+    /// @dev Revert when attempting to register a label that already exists
+    error LabelAlreadyRegistered(bytes32 _labelHash);
+
     /// @notice Forward lookup: labelhash => chain data
+
     mapping(bytes32 _labelHash => ChainData _chainData) internal chainData;
 
     /// @notice Reverse lookup: chain ID => labelhash
@@ -72,6 +76,11 @@ contract ChainRegistry is IChainRegistry, IERC165, Ownable {
     /// @inheritdoc IChainRegistry
     function register(string calldata _chainName, address _owner, bytes calldata _chainId) external onlyOwner {
         bytes32 _labelHash = keccak256(bytes(_chainName));
+
+        // Prevent overwriting an existing label registration
+        if (labelOwners[_labelHash] != address(0)) {
+            revert LabelAlreadyRegistered(_labelHash);
+        }
 
         // Set the owner
         labelOwners[_labelHash] = _owner;

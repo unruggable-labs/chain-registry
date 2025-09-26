@@ -20,7 +20,10 @@ interface IChainRegistry {
 }
 
 contract ChainResolver is Ownable, IERC165, IExtendedResolver {
+    /// @dev Revert when attempting to register a label that already exists
+    error LabelAlreadyRegistered(bytes32 _labelHash);
     // ENS method selectors
+
     bytes4 public constant ADDR_SELECTOR = bytes4(keccak256("addr(bytes32)"));
     bytes4 public constant ADDR_COINTYPE_SELECTOR = bytes4(keccak256("addr(bytes32,uint256)"));
     bytes4 public constant CONTENTHASH_SELECTOR = bytes4(keccak256("contenthash(bytes32)"));
@@ -184,6 +187,10 @@ contract ChainResolver is Ownable, IERC165, IExtendedResolver {
     /// @param _labelHash The labelhash to register.
     /// @param _owner The owner address for this labelhash.
     function register(bytes32 _labelHash, address _owner) external onlyOwner {
+        // Prevent duplicate registrations
+        if (labelOwners[_labelHash] != address(0)) {
+            revert LabelAlreadyRegistered(_labelHash);
+        }
         labelOwners[_labelHash] = _owner;
     }
 
