@@ -1,4 +1,4 @@
-# On-chain Registry Overview
+# Ethereum Chain Registry Overview
 
 This repo packages an on‑chain registry — [ChainRegistry](src/ChainRegistry.sol) — and resolvers that map human‑readable chain labels to chain identifiers and vice versa. The resolvers implement the wildcard resolution defined by [ENSIP‑10](https://docs.ens.domains/ensip/10/). The forward resolver ([`ChainResolver.sol`](src/ChainResolver.sol)) responds to ENS record queries for any labelhash, while the reverse resolver ([`ReverseChainResolver.sol`](src/ReverseChainResolver.sol)) turns chain identifiers back into readable labels.
 
@@ -17,7 +17,7 @@ This repo packages an on‑chain registry — [ChainRegistry](src/ChainRegistry.
 
 ### ChainRegistry
 
-Source code lives in our fork of Wonderland’s L2Resolver: https://github.com/nxt3d/Wonderland_L2Resolver/blob/dev/src/contracts/L2Resolver.sol
+Source code lives here (fork of Wonderland’s L2Resolver): https://github.com/nxt3d/Wonderland_L2Resolver/blob/dev/src/contracts/L2Resolver.sol
 
 Register a chain with:
 
@@ -66,6 +66,8 @@ function resolve(bytes calldata name, bytes calldata data) external view overrid
     }
 }
 ```
+
+We use the following core fields:
 
 - `text(bytes32 node, string key)` with `key = "chain-id"` stays the default path until clients migrate.
 - `data(bytes32 node, bytes key)` with `key = bytes("chain-id")` is the new binary channel so the same resolver can serve both generations of integrations.
