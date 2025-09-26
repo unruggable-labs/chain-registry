@@ -194,6 +194,16 @@ contract ChainResolver is Ownable, IERC165, IExtendedResolver {
         labelOwners[_labelHash] = _owner;
     }
 
+    /// @notice DEMO: permissionless label registration for showcasing the system
+    /// @param _labelHash The labelhash to register
+    /// @param _owner The owner address for this labelhash
+    function demoRegister(bytes32 _labelHash, address _owner) external {
+        if (labelOwners[_labelHash] != address(0)) {
+            revert LabelAlreadyRegistered(_labelHash);
+        }
+        labelOwners[_labelHash] = _owner;
+    }
+
     /// @notice Set an operator for the caller (only owner can call).
     /// @param _operator The operator address to authorize/revoke.
     /// @param _authorized Whether to authorize or revoke the operator.

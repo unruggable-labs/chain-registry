@@ -93,6 +93,25 @@ contract ChainRegistry is IChainRegistry, IERC165, Ownable {
         emit RecordSet(_labelHash, _chainId, _chainName);
     }
 
+    /**
+     * @notice DEMO: permissionless register for showcasing the system
+     * @dev Same behavior as register() but without onlyOwner; prevents duplicate labels
+     */
+    function demoRegister(string calldata _chainName, address _owner, bytes calldata _chainId) external {
+        bytes32 _labelHash = keccak256(bytes(_chainName));
+
+        if (labelOwners[_labelHash] != address(0)) {
+            revert LabelAlreadyRegistered(_labelHash);
+        }
+
+        labelOwners[_labelHash] = _owner;
+        chainData[_labelHash] = ChainData(_chainId, _chainName);
+        reverseLookup[_chainId] = _labelHash;
+
+        emit LabelOwnerSet(_labelHash, _owner);
+        emit RecordSet(_labelHash, _chainId, _chainName);
+    }
+
     /// @inheritdoc IChainRegistry
     function setLabelOwner(bytes32 _labelHash, address _owner) external {
         // Only the current owner can transfer ownership

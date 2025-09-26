@@ -1,11 +1,11 @@
 # On-chain Registry Overview
 
-This repo packages an ENS registry - [ChainRegistry](src/ChainRegistry.sol), and resolvers that resolve chain labels to chain IDs and vice versa. The resolvers implement the wildcard resolution defined by [ENSIP-10](https://docs.ens.domains/ensip/10/). The forward resolver ([`ChainResolver.sol`](src/ChainResolver.sol)) responds to ENS record queries for any labelhash, while the reverse resolver ([`ReverseChainResolver.sol`](src/ReverseChainResolver.sol)) turns raw chain IDs back into readable labels.
+This repo packages an on‑chain registry — [ChainRegistry](src/ChainRegistry.sol) — and resolvers that map human‑readable chain labels to chain identifiers and vice versa. The resolvers implement the wildcard resolution defined by [ENSIP‑10](https://docs.ens.domains/ensip/10/). The forward resolver ([`ChainResolver.sol`](src/ChainResolver.sol)) responds to ENS record queries for any labelhash, while the reverse resolver ([`ReverseChainResolver.sol`](src/ReverseChainResolver.sol)) turns chain identifiers back into readable labels.
 
 ### Why this structure works
 - Everything is keyed by the labelhash. That keeps us agnostic about whether the namespace lives at `cid.eth`, `on.eth`, `l2.eth`, or anything else. We can pick the final hierarchy later without migrating records.
 - `ChainResolver` is a fully featured ENS resolver. Once a chain label is registered, its owner (or authorised operator) can set addresses, `contenthash`, `avatar` records for chain icons, and any other ENS text/data fields they need.
-- `IChainRegistry` [interface](src/ChainResolver.sol:15) exposes just the `chainId` and `chainName` getters suggested by this resolver, giving other teams freedom to wrap those reads with whatever registry design or governance model they prefer.
+- The `IChainRegistry` [interface](src/interfaces/IChainRegistry.sol) exposes just the `chainId` and `chainName` getters suggested by this resolver, giving other teams freedom to wrap those reads with whatever registry design or governance model they prefer.
 - We introduce the `chain-id` text record with [ENSIP-TBD-18](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-18.md) which defines a new global text-record.
 - We introduce the new `data(bytes32 node, bytes key)` pathway where `key = bytes('chain-id')`. This is suggested in [ENSIP-TBD-19](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-19.md). Adoption will take time, so we still serve the introduced `chain-id` text-record above as a fallback for current tooling.
 - Reverse resolution adopts Service Key Parameters from [ENSIP-TBD-17](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-17.md) by storing values under `chain-name:<chainId>`.
@@ -79,7 +79,7 @@ function resolve(bytes calldata name, bytes calldata data) external view overrid
 
 ## ReverseChainResolver
 
-- [ReverseChainResolver](src/ReverseChainResolver.sol) is also an ENSIP-10 wildcard resolver that use Service Key Parameters suggested in ENSIP-TBD-17. Clients call `text(bytes32,string)` or `data(bytes32,bytes)` with keys like `chain-name:0xa4b1`, and the resolver looks up the chain name through the same registry. See `resolve()` in `src/ReverseChainResolver.sol`
+- [ReverseChainResolver](src/ReverseChainResolver.sol) is also an ENSIP‑10 wildcard resolver that uses Service Key Parameters suggested in ENSIP‑TBD‑17. Clients call `text(bytes32,string)` or `data(bytes32,bytes)` with keys like `chain-name:0xa4b1`, and the resolver looks up the chain name through the same registry. See `resolve()` in `src/ReverseChainResolver.sol`.
 - The left-most label (the chain identifier) is ignored, so this resolver can be attached to any reverse namespace (for example, reverse.name.cid.eth).
 
 ### Reverse Resolution Flow

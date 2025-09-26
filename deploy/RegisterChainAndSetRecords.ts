@@ -11,6 +11,7 @@ import {
 } from "./libs/utils.ts";
 import {
   Contract,
+  Interface,
   keccak256,
   toUtf8Bytes,
   toBeHex,
@@ -106,17 +107,50 @@ try {
   console.log("Registering in ChainRegistry...");
   let ok = await promptContinueOrExit(rl, "Proceed? (y/n): ");
   if (ok) {
-    const tx = await registry.register(label, owner, cidIn);
-    await tx.wait();
-    console.log("✓ registry.register");
+    try {
+      const tx = await registry.register(label, owner, cidIn);
+      await tx.wait();
+      console.log("✓ registry.register");
+    } catch (e: any) {
+      const errIface = new Interface([
+        "error LabelAlreadyRegistered(bytes32)",
+        "error NotAuthorized(address,bytes32)",
+      ]);
+      const data: string | undefined = e?.data || e?.error?.data || e?.info?.error?.data;
+      let decoded = undefined as any;
+      try { if (data && typeof data === 'string') decoded = errIface.parseError(data); } catch {}
+      const short = e?.shortMessage || e?.message || "";
+      if (decoded?.name === 'LabelAlreadyRegistered' || /LabelAlreadyRegistered/.test(short)) {
+        console.log("✗ Label already registered:", label, "(skipping registry.register)");
+      } else if (/Ownable: caller is not the owner|NotAuthorized/.test(short)) {
+        console.log("✗ Not authorized to register this label (owner-only)");
+      } else {
+        console.error("✗ registry.register failed:", short);
+      }
+    }
   }
 
   console.log("Registering label in ChainResolver...");
   ok = await promptContinueOrExit(rl, "Proceed? (y/n): ");
   if (ok) {
-    const tx = await resolver.register(labelHash, owner);
-    await tx.wait();
-    console.log("✓ resolver.register");
+    try {
+      const tx = await resolver.register(labelHash, owner);
+      await tx.wait();
+      console.log("✓ resolver.register");
+    } catch (e: any) {
+      const errIface = new Interface(["error LabelAlreadyRegistered(bytes32)"]);
+      const data: string | undefined = e?.data || e?.error?.data || e?.info?.error?.data;
+      let decoded = undefined as any;
+      try { if (data && typeof data === 'string') decoded = errIface.parseError(data); } catch {}
+      const short = e?.shortMessage || e?.message || "";
+      if (decoded?.name === 'LabelAlreadyRegistered' || /LabelAlreadyRegistered/.test(short)) {
+        console.log("✗ Label already registered in resolver (skipping)");
+      } else if (/Ownable: caller is not the owner/.test(short)) {
+        console.log("✗ Not authorized to register label in resolver (owner-only)");
+      } else {
+        console.error("✗ resolver.register failed:", short);
+      }
+    }
   }
 
   // Quick sanity
