@@ -180,9 +180,14 @@ export const verifyContract = async (
 
   const fqNameMap: Record<string, string> = {
     ChainResolver: "src/ChainResolver.sol:ChainResolver",
+    ChainRegistry: "src/ChainRegistry.sol:ChainRegistry",
+    ReverseChainResolver: "src/ReverseChainResolver.sol:ReverseChainResolver",
     KeygenLib: "src/utils/KeyGenLib.sol:KeygenLib"
   };
   const nameOrFQN = fqNameMap[contractName] || contractName;
+
+  const chainInfo = CHAIN_MAP.get(chainId);
+  const chainFlag = chainInfo?.name ?? chainId; // prefer name like 'sepolia'
 
   const commandArgs = [
     "verify-contract",
@@ -194,9 +199,7 @@ export const verifyContract = async (
     //'--verifier-url',
     //`https://api.etherscan.io/v2/api`,
     "--chain",
-    //'sepolia',
-    //'--chain-id',
-    chainId,
+    chainFlag,
   ];
 
   if (contractArgs.length > 0) {

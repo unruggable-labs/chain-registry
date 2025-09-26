@@ -1,103 +1,86 @@
 import "dotenv/config";
 
 import { Foundry } from "@adraffy/blocksmith";
-import { Contract, concat, namehash, toBeHex, keccak256 } from "ethers";
+import {
+  Contract,
+  Interface,
+  dnsEncode,
+  keccak256,
+  toUtf8Bytes,
+} from "ethers";
 import { strict as assert } from "node:assert";
-
-const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
-const TEST_NAME = "cid.eth";
-const NODE = namehash(TEST_NAME);
 
 const SEPOLIA_RPC =
   process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com";
 
-function solidityFollowSlot(slot: bigint, keyHex: string): bigint {
-  const hashed = keccak256(concat([keyHex, toBeHex(slot, 32)]));
-  return BigInt(hashed);
-}
+const LABEL = "optimism";
+const LABEL_HASH = keccak256(toUtf8Bytes(LABEL));
+const DNS_NAME = dnsEncode(`${LABEL}.cid.eth`, 255);
 
-function nodeSlot(nodeHex: string): bigint {
-  // ENS Registry stores records in mapping(bytes32 => Record) at slot 0.
-  // Resolver lives at offset +1 within the Record struct.
-  const base = solidityFollowSlot(0n, nodeHex);
-  return base + 1n;
-}
+const RESOLVER_IFACE = new Interface([
+  "function addr(bytes32) view returns (address)",
+  "function addr(bytes32,uint256) view returns (address)",
+  "function contenthash(bytes32) view returns (bytes)",
+  "function text(bytes32,string) view returns (string)",
+  "function data(bytes32,bytes) view returns (bytes)",
+]);
 
 const foundry = await Foundry.launch({
   fork: SEPOLIA_RPC,
   procLog: false,
-  infoLog: true,
+  infoLog: false,
 });
 
 try {
-  const chainResolver = await foundry.deploy<Contract>({
-    file: "ChainResolver",
-    args: [],
+  const registry = await foundry.deploy<Contract>({
+    file: "ChainRegistry",
+    args: [ (foundry as any).wallets?.admin?.address ?? '0x0000000000000000000000000000000000000001' ],
   });
 
-  const chainIdKey: bigint = await chainResolver.CHAIN_ID_KEY();
-  const payload = toBeHex(8453n, 32); // sample chain data payload
+  const chainResolver = await foundry.deploy<Contract>({
+    file: "ChainResolver",
+    args: [registry.target],
+  });
 
-  await foundry.confirm(chainResolver.setAddr(NODE, chainIdKey, payload));
-
-  // Verify direct contract reads
-  const storedBytes: string = await chainResolver.addr(NODE, chainIdKey);
-  assert.equal(storedBytes, payload, "stored payload mismatch");
-
-  const reverseNode: string = await chainResolver.node(payload);
-  assert.equal(
-    reverseNode.toLowerCase(),
-    NODE.toLowerCase(),
-    "reverse lookup failed"
+  // register registry: LABEL -> CHAIN_ID (32-byte)
+  const CHAIN_ID = "0x" + "21".repeat(32);
+  await foundry.confirm(
+    registry.register(LABEL, "0x0000000000000000000000000000000000000000", CHAIN_ID),
+    { silent: true }
   );
 
-  // Point ENS registry at our resolver for the test node by mutating storage
-  const slot = nodeSlot(NODE);
-  await foundry.provider.send("anvil_setStorageAt", [
-    ENS_REGISTRY,
-    toBeHex(slot, 32),
-    toBeHex(BigInt(chainResolver.target), 32),
-  ]);
-
-  const ens = new Contract(
-    ENS_REGISTRY,
-    ["function resolver(bytes32 node) view returns (address)"],
-    foundry.provider
+  // register resolver: labelhash owner
+  await foundry.confirm(
+    chainResolver.register(LABEL_HASH, "0x0000000000000000000000000000000000000000"),
+    { silent: true }
   );
+  {
+    // resolve via text("chain-id")
+    const call = RESOLVER_IFACE.encodeFunctionData("text(bytes32,string)", [
+      LABEL_HASH,
+      "chain-id",
+    ]);
+    const answer: string = await chainResolver.resolve(DNS_NAME, call);
+    const [decoded] = RESOLVER_IFACE.decodeFunctionResult(
+      "text(bytes32,string)",
+      answer
+    );
+    const expectedNo0x = CHAIN_ID.replace(/^0x/, "").toLowerCase();
+    assert.equal(decoded.toLowerCase(), expectedNo0x, "text(chain-id) mismatch");
+    console.log(`${LABEL} -> 0x${decoded}`);
+  }
 
-  const resolverAddress: string = await ens.resolver(NODE);
-  assert.equal(
-    resolverAddress.toLowerCase(),
-    chainResolver.target.toLowerCase(),
-    "ENS registry resolver not updated"
-  );
-
-  // Resolve via the registry-connected instance
-  const resolverViaEns = new Contract(
-    resolverAddress,
-    [
-      "function addr(bytes32 node, uint256 key) view returns (bytes)",
-      "function node(bytes calldata data) view returns (bytes32)",
-    ],
-    foundry.provider
-  );
-
-  const bytesFromEns: string = await resolverViaEns.addr(NODE, chainIdKey);
-  assert.equal(
-    bytesFromEns,
-    payload,
-    "addr via ENS returned unexpected payload"
-  );
-
-  const nodeFromEns: string = await resolverViaEns.node(payload);
-  assert.equal(
-    nodeFromEns.toLowerCase(),
-    NODE.toLowerCase(),
-    "reverse via ENS returned wrong node"
-  );
-
-  console.log("Resolved payload:", bytesFromEns);
-  console.log("Reverse node:", nodeFromEns);
+  
+  {
+    // resolve via data("chain-id")
+    const key = new TextEncoder().encode("chain-id");
+    const call = RESOLVER_IFACE.encodeFunctionData("data(bytes32,bytes)", [
+      LABEL_HASH,
+      key,
+    ]);
+    const answer: string = await chainResolver.resolve(DNS_NAME, call);
+    assert.equal(answer.toLowerCase(), CHAIN_ID.toLowerCase(), "data(chain-id) mismatch");
+  }
 } finally {
   await foundry.shutdown();
 }
