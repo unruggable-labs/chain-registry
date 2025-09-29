@@ -158,8 +158,8 @@ bun run deploy/ReverseResolveByChainId.ts --chain=sepolia
 
 
 ## References
-- [ENSIP-5](https://docs.ens.domains/ens-improvement-proposals/ensip-5-text-records) &mdash; Text record conventions (`text(bytes32 node, string key)`).
-- [ENSIP-10](https://docs.ens.domains/ens-improvement-proposals/ensip-10-multi-coin-support) &mdash; Wildcard resolution flow (`resolve(bytes,name)` fan-out).
+- [ENSIP-5](https://docs.ens.domains/ensip/5) &mdash; Text record conventions (`text(bytes32 node, string key)`).
+- [ENSIP-10](https://docs.ens.domains/ensip/10) &mdash; Wildcard resolution flow (`resolve(bytes,name)` fan-out).
 - [ENSIP-TBD-17](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-17.md) &mdash; Service Key Parameters for reverse resolution.
 - [ENSIP-TBD-18](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-18.md) &mdash; Global `chain-id` text record definition.
 - [ENSIP-TBD-19](https://github.com/nxt3d/ensips/blob/ensip-ideas/ensips/ensip-TBD-19.md) &mdash; Binary `data()` record proposal for chain IDs.
